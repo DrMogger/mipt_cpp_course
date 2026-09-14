@@ -15,6 +15,8 @@
 #include <fstream>
 #include <print>
 #include <string>
+#include <vector>
+#include <map>
 
 int main(int argc, char** argv) {
     // Аргументы разбираются грубо: путь к журналу и ничего больше. Остальное,
@@ -24,15 +26,31 @@ int main(int argc, char** argv) {
         return 2;
     }
 
-    std::ifstream log(argv[1]);
+    bool quiet = true;
+    std::string path = "";
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--quiet")   quiet = false;
+        else    path = argv[i];
+    }
+
+    std::ifstream log(path);
     if (!log) {
-        std::print(stderr, "не удалось открыть журнал: {}\n", argv[1]);
+        std::print(stderr, "не удалось открыть журнал: {}\n", path);
         return 2;
     }
 
     long long lines = 0;
     long long comments = 0;
     std::string line;
+    std::vector<std::string> patterns = {
+        "wscript.exe",
+        ".locked",
+        "certutil.exe",
+        "\\Startup\\"
+    };
+
+    std::map<std::string, int> types;
+    const std::string key = "type=";
 
     while (std::getline(log, line)) {
         // Счётчик увеличивается до всех проверок: он считает строки файла,
@@ -42,7 +60,7 @@ int main(int argc, char** argv) {
 
         // Строки-комментарии в журнале начинаются с '#'. Они не события,
         // и детекта по ним быть не должно.
-        if (!line.empty() && line[0] == '#') {
+        if (!line.empty() && (line[0] == '#' || line[0] == ';')) {
             ++comments;
             continue;
         }
@@ -51,8 +69,30 @@ int main(int argc, char** argv) {
         //
         // Проверка признаков и печать детекта. Номер строки, который нужен
         // в выводе, — это lines.
+
+        // ts=1730000003600 type=process_end pid=1042 exit=0
+
+        size_t pos = line.find(key);
+        if (pos != std::string::npos) {
+            pos += key.size();
+            size_t end = pos;
+
+            while (end < line.size() && line[end] != ' ')   ++end;
+            types[line.substr(pos, end-pos)]++;
+        }
+
+        for (const auto& pattern : patterns) {
+            if (line.find(pattern) != std::string::npos) {
+                std::print("[DETECT] строка {}, признак {}: {}\n", lines, pattern, line);
+            }
+        }
     }
 
-    std::print("строк {}, из них комментариев {}\n", lines, comments);
+    if (quiet){  
+        std::print("строк {}, из них комментариев {}\n", lines, comments);
+        for (auto& [type, value] : types) {
+            std::print("{} раз встретился тип {}\n", value, type);
+        }
+    }
     return 0;
 }
