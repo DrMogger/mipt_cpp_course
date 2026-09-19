@@ -26,10 +26,10 @@ int main(int argc, char** argv) {
         return 2;
     }
 
-    bool quiet = true;
+    bool quiet = false;
     std::string path = "";
     for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--quiet")   quiet = false;
+        if (std::string(argv[i]) == "--quiet")   quiet = true;
         else    path = argv[i];
     }
 
@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (quiet){  
+    if (!quiet){  
         std::print("строк {}, из них комментариев {}\n", lines, comments);
         for (auto& [type, value] : types) {
             std::print("{} раз встретился тип {}\n", value, type);
