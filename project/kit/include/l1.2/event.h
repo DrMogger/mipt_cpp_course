@@ -8,7 +8,7 @@
 // с инвариантом» станет видна на своём же коде.
 //
 // Все поля — строки. Так их отдаёт журнал, и превращать их в числа здесь
-// незачем: это дело функций доступа из занятия 1.3, где заодно решается, что
+// незачем: это дело слоя доступа из занятия 1.3, где заодно решается, что
 // делать с полем, которого нет, и с полем, которое не разбирается.
 
 #ifndef NANO_EDR_KIT_EVENT_H
@@ -19,23 +19,19 @@
 
 namespace nano_edr {
 
-// Пара «ключ — значение» из строки журнала.
 struct Field {
     std::string key;
     std::string value;
 };
 
-// Шапка события плюс остальные поля списком.
-//
-// Порядок полей в fields сохраняется таким, каким он был в строке. Это важнее,
-// чем кажется: журнал — внешние данные, и повторяющиеся ключи в нём законны.
-// Переупорядочивать или склеивать их — значит терять то, что прислала система.
+
+// ts=1730000001000 type=process_start pid=1042 ||| ppid=880 image="C:\Windows\System32\cmd.exe" cmdline="cmd /c wscript %TEMP%\a.js" user=DESKTOP\max
 struct Event {
-    std::string ts;    // время в миллисекундах, как в журнале
-    std::string type;  // process_start, file_write, net_connect, …
+    std::string ts;
+    std::string type;
     std::string pid;
 
-    std::vector<Field> fields;  // всё, кроме ts, type и pid
+    std::vector<Field> fields;
 };
 
 }  // namespace nano_edr
