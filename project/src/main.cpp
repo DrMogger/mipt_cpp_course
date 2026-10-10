@@ -1,13 +1,4 @@
-// Каркас агента: читает журнал событий построчно и считает строки.
-//
-// Это заготовка занятия 1.1, а не решение. Детектов она не ищет — их вы
-// добавите здесь же, в отмеченном месте ниже. Формат строки детекта, список
-// признаков и правило про их порядок заданы в постановке занятия: по ним
-// сравниваются эталоны.
-//
-// Весь код лежит в main, и на этом занятии так и надо: функции появятся
-// на занятии 1.2, ссылки — на 1.3. Разбор аргументов, коды возврата и флаг
-// --quiet — часть задания.
+// Крутой агент: читает журнал событий построчно и считает строки.
 //
 // Запуск:
 //   nano-edr <журнал.log>
@@ -22,32 +13,19 @@
 
 #include <event.h>
 #include <event_list.h>
+#include <agent_rules.h>
 #include <parse.h>
 
-void PrintContext(const nano_edr::EventList* window) {
-    const nano_edr::EventNode* last = nullptr;
-    const nano_edr::EventNode* prev = nullptr;
-
-    for (const nano_edr::EventNode* node = window->head; node != nullptr; node = node->next) {
-        prev = last;
-        last = node;
-    }
-    if (prev != nullptr) {
-        std::print("[CTX] -2: ts={} type={} pid={}\n", prev->event.ts, prev->event.type, prev->event.pid);
-    }
-    if (last != nullptr) {
-        std::print("[CTX] -1: ts={} type={} pid={}\n", last->event.ts, last->event.type, last->event.pid);
+void print_resume(bool &quiet, long long &lines, long long &comments, std::map<std::string, int> &types) {
+    if (!quiet) {
+        std::print("строк {}, из них комментариев {}\n", lines, comments);
+        for (auto& [type, value] : types) {
+            std::print("{} раз встретился тип {}\n", value, type);
+        }
     }
 }
 
-int main(int argc, char** argv) {
-    if (argc < 2) {
-        std::print(stderr, "использование: nano-edr <журнал.log>\n");
-        return 2;
-    }
-    bool quiet = false;
-    std::string path;
-    std::size_t window_size = 64;
+int parse(int &argc, char** &argv, std::string &path, bool &quiet, std::size_t &window_size, std::ifstream &log) {
     for (int i = 1; i < argc; ++i) {
         const std::string ar = argv[i];
         if (ar == "--quiet") {
@@ -55,7 +33,7 @@ int main(int argc, char** argv) {
         } else if (ar == "--window-size") {
             if (i + 1 >= argc) {
                 std::print(stderr, "не хватает значения для --window-size\n");
-                return 2;
+                return 1;
             }
 
             const std::string value = argv[i + 1];
@@ -65,7 +43,7 @@ int main(int argc, char** argv) {
             const auto [ptr, ec] = std::from_chars(begin, end, parsed);
             if (ec != std::errc{} || ptr != end) {
                 std::print(stderr, "неверное значение для --window-size: {}\n", value);
-                return 2;
+                return 1;
             }
             window_size = parsed;
             ++i;
@@ -73,86 +51,91 @@ int main(int argc, char** argv) {
             path = ar;
         }
     }
-    std::ifstream log(path);
     if (path.empty()) {
         std::print(stderr, "не указан путь к журналу\n");
-        return 2;
+        return 1;
+    }
+    if (!log) {
+        std::print(stderr, "не удалось открыть журнал: {}\n", path);
+        return 1;
+    }
+    
+    return 0;
+}
+
+void print_ctx(const nano_edr::EventNode* prev) {
+    if (prev){
+        nano_edr::EventNode *tail = prev->next;
+        int i = tail ? 2 : 1;
+        while (prev) {
+            std::print("[CTX] -{}: ts={} type={} pid={}\n", i, prev->event.ts, prev->event.type, prev->event.pid);
+            prev = prev->next;
+            i--;
+        } 
+    }
+}
+
+void processing_line(nano_edr::EventList &window, const std::string &line, long long lines, long long comments, std::map<std::string, int> &types, const nano_edr::EventNode* &prev, bool quiet) {
+    nano_edr::Event event;
+
+    if (nano_edr::IsBlankOrComment(&line)) {
+        ++comments;
+        return;
+    }
+    if (!nano_edr::ParseEventLine(&line, &event)) {
+        return;
     }
 
-    // bool quiet = false;
-    // std::string path;
-    // std::size_t window_size = 64;
+    const nano_edr::EventNode* tail = window.tail;
+    int matched = 0;
+    ++lines;
+    ++types[event.type];
 
-    // for (int i = 1; i < argc; ++i) {
-    //     std::string ar = argv[i];
-    //     if (ar == "--quiet")   quiet = true;
-    //     else if (ar == "--window-size")    window_size = std::stoi(argv[i+1]);
-    //     else    path = ar;
-    // }
+    matched += nano_edr::CheckRules(event, nano_edr::AgentRules(), nano_edr::AgentRuleCount());
+    if(matched && !quiet)   print_ctx(prev);
+    prev = tail;
 
-    // std::ifstream log(path);
-    // if (!log) {
-    //     std::print(stderr, "не удалось открыть журнал: {}\n", path);
-    //     return 2;
-    // }
+    nano_edr::ListPushBack(&window, &event);
 
+    if (window.capacity == 1)   prev = nullptr;
+}
+
+int agent_work(std::ifstream &log, bool quiet, std::size_t window_size) {
     long long lines = 0;
     long long comments = 0;
     std::string line = "";
-    std::vector<std::string> patterns = {
-        "wscript.exe",
-        ".locked",
-        "certutil.exe",
-        "\\Startup\\"
-    };
-
     std::map<std::string, int> types;
 
+    const nano_edr::EventNode* prev{};
     nano_edr::EventList window;
     window.capacity = window_size;
 
     while (std::getline(log, line)) {
-        ++lines;
-
-        if (nano_edr::IsBlankOrComment(&line)) {
-            ++comments;
-            continue;
-        }
-
-        nano_edr::Event event;
-        if (!nano_edr::ParseEventLine(&line, &event)) {
-            continue;
-        }
-
-        bool matched = false;
-        for (const auto& pattern : patterns) {
-            if (line.find(pattern) != std::string::npos) {
-                std::print("[DETECT] строка {}, признак {}: {}\n", lines, pattern, line);
-                matched = true;
-            }
-        }
-        
-        nano_edr::EventNode* prev = window.capacity == 1 ? nullptr : window.tail;
-        nano_edr::ListPushBack(&window, &event);
-        ++types[event.type];
-        
-        if (matched && !quiet) {
-            nano_edr::EventNode* last = window.tail;
-
-            if (prev != nullptr) {
-            std::print("[CTX] -2: ts={} type={} pid={}\n", prev->event.ts, prev->event.type, prev->event.pid);
-            }
-            if (last != nullptr) {
-                std::print("[CTX] -1: ts={} type={} pid={}\n", last->event.ts, last->event.type, last->event.pid);
-            }
-        }
+        processing_line(window, line, lines, comments, types, prev, quiet);
     }
 
-    if (!quiet) {
-        std::print("строк {}, из них комментариев {}\n", lines, comments);
-        for (auto& [type, value] : types) {
-            std::print("{} раз встретился тип {}\n", value, type);
-        }
-    }
+    print_resume(quiet, lines, comments, types);
     return 0;
+}
+
+int main(int argc, char** argv) {
+
+    try {
+        bool quiet = false;
+        std::string path;
+        std::ifstream log(path);
+        std::size_t window_size = 64;
+
+        int return_code_parse = parse(argc, argv, path, quiet, window_size, log);
+        if (return_code_parse != 0) {
+            return return_code_parse;
+        }
+
+
+        agent_work(log, quiet, window_size);
+        
+    } catch (const std::exception& e) {
+        std::print(stderr, "ошибка: {}\n", e.what());
+        return 1;
+    }
 }
