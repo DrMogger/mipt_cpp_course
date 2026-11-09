@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="nano-edr — phishing_macro" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="scenarios/phishing_macro.log" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/project" PASS_PARENT_ENVS_2="true" PROJECT_NAME="nano_edr_agent" TARGET_NAME="nano-edr" CONFIG_NAME="CLion Debug" RUN_TARGET_PROJECT_NAME="nano_edr_agent" RUN_TARGET_NAME="nano-edr">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

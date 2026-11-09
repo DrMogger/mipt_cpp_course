@@ -192,8 +192,8 @@ $ nano-edr scenarios/phishing_macro.cfg
 | пример | [`examples/minimal_agent.cpp`](../project/examples/minimal_agent.cpp) | полный цикл работы с границей |
 
 Что установить, как собрать, что делает CMake и как прогнать тесты —
-в [`project/README.md`](../project/README.md). Установка с нуля и работа
-из VS Code — в [`SETUP.md`](../SETUP.md).
+в [`project/README.md`](../project/README.md). Работа в CLion с существующим
+контейнером — в [`SETUP.md`](../SETUP.md).
 
 **Заготовки интерфейсов не менять.** Это публичные границы между модулями:
 на них опираются выданные тесты и следующие занятия. Внутреннее устройство —

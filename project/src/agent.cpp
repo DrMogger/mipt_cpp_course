@@ -1,79 +1,49 @@
 #include "agent.h"
 
-#include <cstdio>
-#include <exception>
 #include <print>
 
 #include "agent_rules.h"
 
 namespace nano_edr {
 
+Agent::Agent(bool quiet)
+    : quiet_(quiet) {
+    RegisterAgentRules(&engine_);
+}
+
 void Agent::PrintContext() const {
-    if (prev_){
-        nano_edr::EventNode *tail = prev_->next;
-        int i = tail ? 2 : 1;
-        auto* current = prev_;
-        while (current) {
-            std::print("[CTX] -{}: ts={} type={} pid={}\n", i, current->event.raw_ts(), current->event.type(), current->event.pid());
-            current = current->next;
-            i--;
-        }
+    const size_t count = window_.size() < 2 ? window_.size() : 2;
+    const size_t first = window_.size() - count;
+    for (size_t i = first; i < window_.size(); ++i) {
+        const WindowEntry& entry = window_[i];
+        std::print("[CTX] -{}: ts={} type={} pid={}\n", i - window_.size(), entry.ts, entry.type, entry.pid);
     }
 }
 
 void Agent::HandleEvent(const Event& event) {
-    const EventNode* tail = window_.back();
-    int matched = 0;
+    std::vector<const IRule*> fired;
+    const std::size_t matched = engine_.ProcessEvent(event, &fired);
 
-    matched += CheckRules(event, AgentRules(), AgentRuleCount());
+    for (const IRule* rule : fired) {
+        std::print("[DETECT] {}  {}  ts={} pid={}\n", SeverityName(rule->severity()), rule->id(), event.raw_ts(), event.pid());
+    }
     if(matched && !quiet_)   PrintContext();
-    prev_ = tail;
 
-    window_.PushBack(event);
-
-    if (window_.size() == 1)   prev_ = window_.back();
-    ++lines_;
+    window_.PushBack({event.raw_ts(), event.type(), event.pid()});
     ++types_[event.type()];
 }
 
 void Agent::PrintSummary() const {
     if (!quiet_) {
-        std::print("строк {}, из них комментариев {}, пропущено событий {}\n",
-                   lines_ + comments_ + skipped_, comments_, skipped_);
+        std::print("[STAT] в окне {} из {} мест\n", window_.size(), window_.capacity());
         for (const auto& [type, value] : types_) {
             std::print("{} раз встретился тип {}\n", value, type);
         }
-    }
-}
-
-void Agent::Trampoline(const os_event* ev, void* ctx) noexcept {
-    try {
-        if (!ev || !ctx) {
-            return;
+        std::print("правила, детектов:\n");
+        for (std::size_t i = 0; i < engine_.size(); ++i) {
+            const IRule& rule = engine_.rule(i);
+            std::print("  {}  {}\n", rule.id(), rule.hits());
         }
-        EventParts parts;
-        parts.ts = std::to_string(ev->ts);
-        parts.type = ev->type;
-        if (ev->pid != 0) {
-            parts.pid = std::to_string(ev->pid);
-        }
-        parts.fields.reserve(ev->field_count);
-        for (size_t i = 0; i < ev->field_count; ++i) {
-            parts.fields.push_back(Field{ev->fields[i].key, ev->fields[i].value});
-        }
-
-        Event event(parts);
-        static_cast<Agent*>(ctx)->HandleEvent(event);
-    } catch (const std::exception& e) {
-        if (ctx) {
-            static_cast<Agent*>(ctx)->CountSkipped();
-        }
-        std::fprintf(stderr, "пропущено событие: %s\n", e.what());
-    } catch (...) {
-        if (ctx) {
-            static_cast<Agent*>(ctx)->CountSkipped();
-        }
-        std::fprintf(stderr, "пропущено событие: неизвестная ошибка\n");
     }
 }
 

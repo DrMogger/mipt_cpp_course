@@ -1,10 +1,10 @@
-#include <cctype>
 #include <cstdint>
 #include <string>
 #include <stdexcept>
 
 #include "event.h"
 #include "fields.h"
+#include "text.h"
 
 namespace nano_edr {
 const std::string* FindField(const Event& event, const std::string& key) {
@@ -83,7 +83,7 @@ bool PathEndsWith(const Event& event, const std::string& suffix) {
     if (!path) {
         return false;
     }
-    return NormalizePath(*path).ends_with(NormalizePath(suffix));
+    return EndsWithIgnoreCase(NormalizePath(*path), NormalizePath(suffix));
 }
 
 // Подстрока в командной строке. Тоже без учёта регистра и по той же причине.
@@ -92,14 +92,14 @@ bool CommandLineContains(const Event& event, const std::string& needle) {
     if (!cmdline) {
         return false;
     }
-    return NormalizePath(*cmdline).find(NormalizePath(needle)) != std::string::npos;
+    return ContainsIgnoreCase(NormalizePath(*cmdline), NormalizePath(needle));
 }
 
 std::string NormalizePath(const std::string& path){
     std::string result = "";
 
-    for (char c : path) {
-        char normalized = static_cast<char>(std::tolower(static_cast<unsigned char>(c == '/' ? '\\' : c)));
+    for (char c : ToLower(path)) {
+        char normalized = c == '/' ? '\\' : c;
         if (normalized == '\\' && !result.empty() && result.back() == '\\') {
             continue;
         }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeSharedSettings" AUTO_RELOAD="true">
+    <configurations>
+      <configuration PROFILE_NAME="CLion Debug" ENABLED="true" GENERATION_DIR="$PROJECT_DIR$/project/build/clion-debug" CONFIG_NAME="Debug" TOOLCHAIN_NAME="Course Docker" GENERATION_OPTIONS="--preset clion-debug -G Ninja" />
+      <configuration PROFILE_NAME="CLion Release" ENABLED="false" GENERATION_DIR="$PROJECT_DIR$/project/build/clion-release" CONFIG_NAME="Release" TOOLCHAIN_NAME="Course Docker" GENERATION_OPTIONS="--preset clion-release -G Ninja" />
+      <configuration PROFILE_NAME="CLion ASan" ENABLED="false" GENERATION_DIR="$PROJECT_DIR$/project/build/clion-asan" CONFIG_NAME="Debug" TOOLCHAIN_NAME="Course Docker" GENERATION_OPTIONS="--preset clion-asan -G Ninja" />
+      <configuration PROFILE_NAME="CLion Strict" ENABLED="false" GENERATION_DIR="$PROJECT_DIR$/project/build/clion-strict" CONFIG_NAME="Release" TOOLCHAIN_NAME="Course Docker" GENERATION_OPTIONS="--preset clion-strict -G Ninja" />
+    </configurations>
+  </component>
+</project>

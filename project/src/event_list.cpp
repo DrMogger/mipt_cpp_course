@@ -9,10 +9,8 @@ EventList::~EventList() {
 void EventList::PushBack(const Event& event) {
     EventNode* node = new EventNode{event};
 
-    if (capacity_) {
-        while(size_ >= capacity_ && head_ != nullptr) {
-            PopFront();
-        }
+    if (capacity_ != 0 && size_ == capacity_) {
+        PopFront();
     }
     if (tail_ == nullptr) {
         head_ = node;

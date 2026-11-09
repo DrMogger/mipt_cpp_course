@@ -1,0 +1,47 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "clion-common",
+      "hidden": true,
+      "cacheVariables": { "NANO_EDR_LESSON": "2.1" },
+      "vendor": { "jetbrains.com/clion": { "toolchain": "Course Docker" } }
+    },
+    {
+      "name": "clion-debug",
+      "inherits": ["clion-common", "debug"],
+      "condition": true,
+      "binaryDir": "${sourceDir}/build/clion-debug"
+    },
+    {
+      "name": "clion-release",
+      "inherits": ["clion-common", "linux"],
+      "condition": true,
+      "binaryDir": "${sourceDir}/build/clion-release"
+    },
+    {
+      "name": "clion-asan",
+      "inherits": ["clion-common", "asan"],
+      "condition": true,
+      "binaryDir": "${sourceDir}/build/clion-asan"
+    },
+    {
+      "name": "clion-strict",
+      "inherits": ["clion-common", "strict"],
+      "condition": true,
+      "binaryDir": "${sourceDir}/build/clion-strict"
+    }
+  ],
+  "buildPresets": [
+    { "name": "clion-debug", "configurePreset": "clion-debug" },
+    { "name": "clion-release", "configurePreset": "clion-release" },
+    { "name": "clion-asan", "configurePreset": "clion-asan" },
+    { "name": "clion-strict", "configurePreset": "clion-strict" }
+  ],
+  "testPresets": [
+    { "name": "clion-debug", "configurePreset": "clion-debug", "output": { "outputOnFailure": true } },
+    { "name": "clion-release", "configurePreset": "clion-release", "output": { "outputOnFailure": true } },
+    { "name": "clion-asan", "configurePreset": "clion-asan", "output": { "outputOnFailure": true } },
+    { "name": "clion-strict", "configurePreset": "clion-strict", "output": { "outputOnFailure": true } }
+  ]
+}

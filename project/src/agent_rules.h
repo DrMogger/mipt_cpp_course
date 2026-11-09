@@ -1,12 +1,11 @@
 #ifndef NANO_EDR_AGENT_RULES_H
 #define NANO_EDR_AGENT_RULES_H
 
-#include "rules.h"
+#include "rule_engine.h"
 
 namespace nano_edr {
 
-const Rule* AgentRules();
-size_t AgentRuleCount();
+void RegisterAgentRules(RuleEngine* engine);
 
 }  // namespace nano_edr
 
