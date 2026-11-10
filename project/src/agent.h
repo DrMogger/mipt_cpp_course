@@ -13,7 +13,7 @@
 
 namespace nano_edr {
 
-class WindowEntry {
+struct WindowEntry {
     std::string ts;
     std::string type;
     std::string pid;

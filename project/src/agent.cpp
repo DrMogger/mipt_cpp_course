@@ -16,7 +16,7 @@ void Agent::PrintContext() const {
     const size_t first = window_.size() - count;
     for (size_t i = first; i < window_.size(); ++i) {
         const WindowEntry& entry = window_[i];
-        std::print("[CTX] -{}: ts={} type={} pid={}\n", i - window_.size(), entry.ts, entry.type, entry.pid);
+        std::print("[CTX] -{}: {} {} pid={}\n", window_.size() - i, entry.ts, entry.type, entry.pid);
     }
 }
 
@@ -24,11 +24,11 @@ void Agent::HandleEvent(const Event& event) {
     std::vector<const IRule*> fired;
     const std::size_t matched = engine_.ProcessEvent(event, &fired);
 
+    if (matched && !quiet_) PrintContext();
+
     for (const IRule* rule : fired) {
         std::print("[DETECT] {}  {}  ts={} pid={}\n", SeverityName(rule->severity()), rule->id(), event.raw_ts(), event.pid());
     }
-    if(matched && !quiet_)   PrintContext();
-
     window_.PushBack({event.raw_ts(), event.type(), event.pid()});
     ++types_[event.type()];
 }

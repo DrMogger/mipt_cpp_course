@@ -4,6 +4,7 @@
 #include "field_traits.h"
 #include <charconv>
 #include <cctype>
+#include <algorithm>
 
 namespace nano_edr {
     bool FieldTraits<std::string>::Parse(const std::string& text, std::string* out) {
@@ -15,7 +16,7 @@ namespace nano_edr {
 
         const char* begin = text.data();
         const char* end = begin + text.size();
-        const auto [ptr, ec] = std::from_chars(begin, end, *out);
+        const auto [ptr, ec] = std::from_chars(begin, end, value);
         if (ec != std::errc{} || ptr != end) {
             return false;
         }

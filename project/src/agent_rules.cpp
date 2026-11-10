@@ -112,19 +112,20 @@ void RegisterAgentRules(RuleEngine* engine) {
                 EventTypeIs({EventType::kFileCreate, EventType::kFileWrite}),
                 AnyOfStatic(
                     FieldContains("path", "\\documents\\"),
-                    FieldContains("path", "/documents")
+                    FieldContains("path", "/documents/")
                 )
-            )
+            ),
             AllOfStatic(
-                EventTypeIs({EventType::kFileMove})),
+                EventTypeIs({EventType::kFileMove}),
                 AnyOfStatic(
                     FieldContains("to", "\\documents\\"),
                     FieldContains("to", "/documents/")
                 )
             )
-        ));
+        )));
     mass_write->AddAction("kill_process");
     mass_write->AddAction("quarantine_file");
+    engine->AddRule(std::move(mass_write));
 }
 
 }  // namespace nano_edr

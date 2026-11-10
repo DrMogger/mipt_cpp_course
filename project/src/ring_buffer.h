@@ -43,8 +43,11 @@ class RingBuffer {
     // Итератор минимальный: ровно то, что нужно range-based for. Как он
     // добирается до элементов буфера, решаете вы; приватной части здесь нет
     // намеренно.
+       static_assert(N > 0, "размер буфера должен быть положительным");
     class Iterator {
      public:
+        Iterator(const RingBuffer* buffer, std::size_t index)
+            : buffer_(buffer), index_(index) {}
         const T& operator*() const {
             return (*buffer_)[index_];
         }
@@ -57,8 +60,8 @@ class RingBuffer {
         }
 
     private:
-        const RingBuffer *buffer_;
-        std::size_t index_;
+        const RingBuffer *buffer_ = nullptr;
+        std::size_t index_ = 0;
     };
 
     // Дописывает элемент. Если буфер полон, самый старый затирается — окно,
@@ -75,29 +78,33 @@ class RingBuffer {
     }
 
     void Clear() {
+        for (size_t i = 0; i < size_; ++i) {
+            T empty {};
+            data_[i] = empty;
+        }
         start_ = 0;
         size_ = 0;
     }
 
-    std::size_t size() {
+    std::size_t size() const {
         return size_;
     }
-    static constexpr std::size_t capacity();
-    bool empty() {
+    static constexpr std::size_t capacity() { return N; }
+    bool empty() const {
         return size_ == 0;
     }
-    bool full() {
+    bool full() const {
         return size_ == N;
     }
 
     // По логическому индексу: 0 — самый старый.
-    const T& operator[](std::size_t index) {
+    const T& operator[](std::size_t index) const {
         return data_[(start_ + index) % N];
     }
 
     // Самый новый элемент. Вызывать на пустом буфере нельзя — это ошибка
     // в коде вызывающего, а не случай, который надо обрабатывать.
-    const T& back() {return (*this)[size() - 1]; }
+    const T& back() const {return (*this)[size() - 1]; }
 
     Iterator begin() const {
         return Iterator(this, 0);
