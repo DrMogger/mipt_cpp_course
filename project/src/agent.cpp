@@ -1,14 +1,17 @@
 #include "agent.h"
 
 #include <print>
+#include <utility>
 
 #include "agent_rules.h"
+#include "dedup_sink.h"
 
 namespace nano_edr {
 
-Agent::Agent(bool quiet)
-    : quiet_(quiet) {
-    RegisterAgentRules(&engine_);
+Agent::Agent(bool quiet, uint64_t dedup_period_ms)
+    : quiet_(quiet), dedup_period_ms_(dedup_period_ms) {
+    engine_.SetModel(&model_);
+    RegisterAgentRules(&engine_, &model_);
 }
 
 void Agent::PrintContext() const {
@@ -20,15 +23,27 @@ void Agent::PrintContext() const {
     }
 }
 
-void Agent::HandleEvent(const Event& event) {
-    std::vector<const IRule*> fired;
-    const std::size_t matched = engine_.ProcessEvent(event, &fired);
-
-    if (matched && !quiet_) PrintContext();
-
-    for (const IRule* rule : fired) {
-        std::print("[DETECT] {}  {}  ts={} pid={}\n", SeverityName(rule->severity()), rule->id(), event.raw_ts(), event.pid());
+void Agent::PrintContextOnce() {
+    if (quiet_ || context_printed_) {
+        return;
     }
+
+    PrintContext();
+    context_printed_ = true;
+}
+
+void Agent::Subscribe(AlertSink sink) {
+    FanOutSink all;
+    all.Add([this](const Detection&) { PrintContextOnce(); });
+    all.Add(std::move(sink));
+    engine_.Subscribe(DedupSink(std::move(all), dedup_period_ms_, &suppressed_));
+}
+
+void Agent::HandleEvent(const Event& event) {
+    model_.Observe(event);
+    context_printed_ = false;
+    engine_.ProcessEvent(event, nullptr);
+
     window_.PushBack({event.raw_ts(), event.type(), event.pid()});
     ++types_[event.type()];
 }
@@ -36,6 +51,12 @@ void Agent::HandleEvent(const Event& event) {
 void Agent::PrintSummary() const {
     if (!quiet_) {
         std::print("[STAT] в окне {} из {} мест\n", window_.size(), window_.capacity());
+        std::print("[STAT] в модели процессов {}, файлов {}\n",
+                   model_.process_count(), model_.file_count());
+        if (suppressed_ > 0) {
+            std::print("[STAT] подавлено дубликатов {} (срок {} мс)\n",
+                       suppressed_, dedup_period_ms_);
+        }
         for (const auto& [type, value] : types_) {
             std::print("{} раз встретился тип {}\n", value, type);
         }
