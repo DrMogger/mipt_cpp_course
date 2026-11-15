@@ -68,7 +68,7 @@ class RingBuffer {
     // а не архив.
     void PushBack(const T& value) {
         if (size_ < N) {
-            std::size_t index_ = (start_ + size_) % N;
+            std::size_t index_ = start_ + size_; // не нужно кольцо вычета, поскольку если start_ больше 0 то условие уйдет в else, а этот if не выполнится.
             data_[index_] = value;
             ++size_;
         } else {

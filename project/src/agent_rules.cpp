@@ -111,15 +111,19 @@ void RegisterAgentRules(RuleEngine* engine) {
             AllOfStatic(
                 EventTypeIs({EventType::kFileCreate, EventType::kFileWrite}),
                 AnyOfStatic(
-                    FieldContains("path", "\\documents\\"),
-                    FieldContains("path", "/documents/")
+                    FieldContains("path", "\\Documents\\"),
+                    FieldContains("path", "/documents/"),
+                    FieldContains("to", "\\Desktop\\"),
+                    FieldContains("to", "/desktop/")
                 )
             ),
             AllOfStatic(
                 EventTypeIs({EventType::kFileMove}),
                 AnyOfStatic(
-                    FieldContains("to", "\\documents\\"),
-                    FieldContains("to", "/documents/")
+                    FieldContains("to", "\\Documents\\"),
+                    FieldContains("to", "/documents/"),
+                    FieldContains("to", "\\Desktop\\"),
+                    FieldContains("to", "/desktop/")
                 )
             )
         )));
