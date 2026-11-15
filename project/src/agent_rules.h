@@ -5,7 +5,7 @@
 
 namespace nano_edr {
 
-void RegisterAgentRules(RuleEngine* engine);
+void RegisterAgentRules(RuleEngine* engine, const EntityModel* model);
 
 }  // namespace nano_edr
 

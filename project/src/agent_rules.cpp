@@ -59,7 +59,7 @@ std::unique_ptr<AnyOf> FilePaths(std::unique_ptr<ICondition> by_path,
 
 }  // namespace
 
-void RegisterAgentRules(RuleEngine* engine) {
+void RegisterAgentRules(RuleEngine* engine, const EntityModel* model) {
     auto script_host = std::make_unique<MatchRule>("script_host_from_temp", Severity::kHigh);
     script_host->AddCondition(ScriptHostFromTemp());
     script_host->AddAction("kill_process");
@@ -130,6 +130,37 @@ void RegisterAgentRules(RuleEngine* engine) {
     mass_write->AddAction("kill_process");
     mass_write->AddAction("quarantine_file");
     engine->AddRule(std::move(mass_write));
+
+    auto shell = MakeRule<SequenceRule>(
+        "shell_spawns_script_host", Severity::kHigh, uint64_t(30000));
+    auto first = std::make_unique<AllOf>();
+    first->Add(std::make_unique<EventTypeIs>(
+        std::vector<EventType>{EventType::kProcessStart}));
+    first->Add(EndsWithAny("image", {"cmd.exe", "powershell.exe", "pwsh.exe"}));
+    shell->SetFirst(std::move(first));
+    auto second = std::make_unique<AllOf>();
+    second->Add(std::make_unique<EventTypeIs>(
+        std::vector<EventType>{EventType::kProcessStart}));
+    second->Add(EndsWithAny("image", {"wscript.exe", "cscript.exe"}));
+    shell->SetSecond(std::move(second));
+    shell->set_child_of_prev(true);
+    shell->SetModel(model);
+    shell->AddAction("kill_process");
+    engine->AddRule(std::move(shell));
+
+    auto dropped = MakeRule<LambdaRule>(
+        "spawned_from_dropped_file", Severity::kHigh,
+        [model](const Event& event) {
+            if (model == nullptr || event.event_type() != EventType::kProcessStart) {
+                return false;
+            }
+            const FileRecord* source = model->FindSpawnSource(event.pid());
+            return source != nullptr && !source->writer_pid.empty() &&
+                   source->writer_pid != event.pid();
+        });
+    dropped->AddAction("kill_process");
+    dropped->AddAction("quarantine_file");
+    engine->AddRule(std::move(dropped));
 }
 
 }  // namespace nano_edr
