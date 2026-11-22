@@ -219,7 +219,8 @@ endif()
 target_link_libraries(nano_edr_core ${NANO_EDR_CORE_SCOPE} os edr)
 
 add_executable(nano-edr "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
-        src/field_traits.cpp)
+        src/field_traits.cpp
+        src/detection.cpp)
 target_link_libraries(nano-edr PRIVATE nano_edr_core nano_edr_warnings)
 nano_edr_copy_runtime(nano-edr)
 

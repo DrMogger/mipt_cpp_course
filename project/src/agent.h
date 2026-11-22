@@ -20,19 +20,25 @@ struct WindowEntry {
 };
 class Agent : public IEventHandler {
     public:
-        Agent(bool quiet);
+        Agent(bool quiet, uint64_t dedup_period_ms = 10000);
         void HandleEvent(const Event& event) override;
         void OnSkipped() override {}
         void OnBroken() override {}
         void OnTick() override {}
         void PrintSummary() const;
+        void Subscribe(AlertSink sink);
 
     private:
+        void PrintContextOnce();
+        bool context_printed_ = false;
         void PrintContext() const;
 
         RingBuffer<WindowEntry, 256> window_;
+        EntityModel model_;
         RuleEngine engine_;
         bool quiet_;
+        uint64_t dedup_period_ms_;
+        std::size_t suppressed_ = 0;
         std::map<std::string, int> types_;
 };
 
